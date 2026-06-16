@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  # Service vLLM : Moteur d'inférence GPU NVIDIA
+  vllm:
+    image: vllm/vllm-openai:gemma-x86_64-cu130
+    container_name: promethaiius-vllm
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/models
+    environment:
+      - HF_TOKEN=***
+    command: >
+      vllm serve /models/qwen3.6-35b-a3b
+      --model /models/qwen3.6-35b-a3b
+      --trust-remote-code
+      --gpu-memory-utilization 0.85
+      --max-model-len 4096
+      --dtype auto
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    runtime: nvidia
+
+  # Service Hermes : "God Container" (Agent + CLIs)
+  hermes:
+    build:
+      context: .
+      dockerfile: Dockerfile.hermes
+    container_name: promethaiius-hermes
+    restart: unless-stopped
+    depends_on:
+      - vllm
+    volumes:
+      - ./hermes_data:/root/.hermes
+      - ./workspace:/workspace
+      - ./models:/models:ro
+    environment:
+      - OPENAI_API_KEY=***
+      - OPENAI_BASE_URL=http://vllm:8000/v1
+      - ANTHROPIC_API_KEY=***
+      - WORKSPACE_DIR=/workspace
+    # Hermes n'a pas besoin d'accès direct au GPU, il delegate au conteneur vllm
+
+volumes:
+  hermes_data:
+  models:
