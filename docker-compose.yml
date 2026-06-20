@@ -9,9 +9,9 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./models:/models
+      - ${MODELS_DIR}:/models
     environment:
-      - HF_TOKEN=***
+      - HF_TOKEN=${HF_TOKEN}
     command: >
       vllm serve /models/qwen3.6-35b-a3b
       --model /models/qwen3.6-35b-a3b
@@ -40,14 +40,10 @@ services:
     volumes:
       - ./hermes_data:/root/.hermes
       - ./workspace:/workspace
-      - ./models:/models:ro
+      - ${MODELS_DIR}:/models:ro
     environment:
-      - OPENAI_API_KEY=***
-      - OPENAI_BASE_URL=http://vllm:8000/v1
-      - ANTHROPIC_API_KEY=***
-      - WORKSPACE_DIR=/workspace
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - WORKSPACE_DIR=${WORKSPACE_DIR}
     # Hermes n'a pas besoin d'accès direct au GPU, il delegate au conteneur vllm
-
-volumes:
-  hermes_data:
-  models:
