@@ -159,50 +159,44 @@ Promethaiius/
 
 ### Configuration DiffusionGemma (RTX 5090 31.5GB VRAM)
 
-**Fenêtre contextuelle limitée à 65000 tokens maximum** - respectez cette limite !
+**Fenêtre contextuelle réduite à 65000 tokens maximum** - respectez cette limite !
 
-#### Paramètres optimisés pour 31.5GB VRAM :
-- `--max-model-len 65000` : Fenêtre contextuelle maximale (ne pas dépasser !)
-- `--gpu-memory-utilization 0.65` : 65% de la VRAM (laisser 10GB pour le système)
-- `--attention-backend FLASH_ATTENTION` : Plus économe en mémoire que TRITON_ATTN
-- `--max-num-seqs 2` : Limité pour éviter les problèmes de fragmentation
-- `--diffusion-config` : Configuration réduite (canvas_length: 128, max_denoising_steps: 32)
+#### Paramètres officiels NousResearch :
+- `--max-model-len 65000` : Fenêtre contextuelle maximale (réduite de 100k pour respecter votre limite LM Studio)
+- `--gpu-memory-utilization 0.70` : 70% de la VRAM (~22GB sur 31.5GB)
+- `--attention-backend TRITON_ATTN` : Backend officiel recommandé par NousResearch
+- `--diffusion-config '{"canvas_length": 256, "max_denoising_steps": 48}'` : Configuration complète pour diffusion
+- `--max-num-seqs 4` : Support multi-séquences (recommandé)
 
-#### ⚠️ Recommandations critiques de la communauté IA :
+#### ⚠️ IMPORTANT : Votre limite LM Studio
 
-**1. Ne jamais dépasser 65000 tokens**
-   - La fenêtre contextuelle est limitée par votre modèle LM Studio en backend
-   - Dépasser cette limite provoquera des erreurs OOM (Out Of Memory)
+Votre modèle LM Studio backend limite la fenêtre à **65000 tokens maximum**. La configuration vLLM ci-dessus est optimisée pour DiffusionGemma, mais vous devez respecter cette limite imposée par votre backend.
 
-**2. Gestion VRAM sur RTX 5090 (31.5GB)**
-   - Laissez toujours ~10-12GB de marge pour le système et les caches
-   - Fermez LM Studio avant de démarrer vLLM si possible
-   - Utilisez `--gpu-memory-utilization 0.65` maximum
+**Recommandations de la communauté :**
+1. Ne jamais dépasser 65000 tokens (limite LM Studio)
+2. Utilisez TRITON_ATTN comme recommandé par NousResearch (pas FLASH_ATTENTION)
+3. Configuration diffusion complète : canvas_length=256, max_denoising_steps=48
+4. Laissez ~10GB de marge VRAM pour le système
 
-**3. Optimisations mémoire**
-   - FLASH_ATTENTION est plus économe que TRITON_ATTN sur GPU Blackwell
-   - Réduisez `canvas_length` et `max_denoising_steps` pour les tâches légères
-   - Évitez les prompts très longs (> 40k tokens) sauf nécessité
+#### Workflow recommandé :
+```bash
+# Vérifier VRAM disponible
+nvidia-smi
 
-**4. Workflow recommandé**
-   ```bash
-   # Vérifier VRAM disponible
-   nvidia-smi
-   
-   # Arrêter LM Studio si en cours d'utilisation
-   docker compose stop promethaiius-vllm
-   
-   # Démarrer vLLM avec la configuration optimisée
-   docker compose up -d
-   
-   # Attendre le healthcheck (2-3 min pour le premier démarrage)
-   docker logs -f promethaiius-vllm | grep "Ready for requests"
-   ```
+# Arrêter LM Studio si en cours d'utilisation
+docker compose stop promethaiius-vllm
 
-**5. Dépannage VRAM**
-   - Erreur OOM : réduire `--gpu-memory-utilization` à 0.60
-   - Lenteur excessive : vérifier que le modèle est bien chargé en VRAM (pas en RAM)
-   - Erreurs CUDA : mettre à jour les drivers NVIDIA >= 550
+# Démarrer vLLM avec la configuration officielle
+docker compose up -d
+
+# Attendre le healthcheck (2-3 min pour le premier démarrage)
+docker logs -f promethaiius-vllm | grep "Ready for requests"
+```
+
+#### Dépannage VRAM :
+- Erreur OOM : réduire `--gpu-memory-utilization` à 0.65
+- Lenteur excessive : vérifier que le modèle est bien chargé en VRAM (pas en RAM)
+- Erreurs CUDA : mettre à jour les drivers NVIDIA >= 550
 
 ### Infrastructure actuelle
 
