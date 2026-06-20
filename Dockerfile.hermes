@@ -1,5 +1,5 @@
 # Hermes Agent - God Container
-FROM python:3.11-slim
+FROM nousresearch/hermes-agent:latest
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -7,18 +7,14 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Hermes Agent
-RUN pip install hermes-agent
+# Install Node.js for coding agents (Claude Code, Codex, OpenCode)
+RUN apt-get update && apt-get install -y curl && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
 
-# Install coding agents
-RUN pip install claude-code codex opencode
-
-# Set environment variables
-ENV HF_TOKEN=***
-ENV OPENAI_API_KEY=***
-ENV OPENAI_BASE_URL=http://vllm:8000/v1
-ENV ANTHROPIC_API_KEY=***
-ENV WORKSPACE_DIR=/workspace
+# Install coding agents globally via npm
+RUN npm install -g @anthropic-ai/claude-code @openai/codex-cli opencode
 
 # Create workspace directory
 RUN mkdir -p /workspace
