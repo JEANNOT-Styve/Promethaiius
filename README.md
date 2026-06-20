@@ -141,6 +141,56 @@ Promethaiius/
 └── README.md             # Ce fichier
 ```
 
+## Utiliser le service Hermes
+
+Une fois l'infrastructure démarrée, Hermes est accessible via plusieurs interfaces :
+
+### 1. Dashboard web (recommandé)
+
+```bash
+# Ouvrir le dashboard dans ton navigateur
+start http://localhost:9119
+```
+
+> Le dashboard permet de gérer les conversations, skills, cron jobs, et l'état des conteneurs.
+
+### 2. Interface CLI (en exécutant des commandes dans le conteneur)
+
+```bash
+# Entrer dans le shell du conteneur Hermes
+docker exec -it promethaiius-hermes bash
+
+# Utiliser la CLI Hermes depuis l'intérieur
+hermes --help
+hermes config get
+hermes skills list
+```
+
+### 3. API Gateway (port 9119)
+
+Hermes expose une API REST sur le port `9119`. Les endpoints principaux :
+
+```bash
+# Health check
+curl http://localhost:9119/health
+
+# Liste des channels connectés
+curl http://localhost:9119/api/channels
+
+# Envoyer un message (via le gateway)
+curl -X POST http://localhost:9119/api/messages \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Bonjour", "source": "web"}'
+```
+
+### 4. Telegram (si configuré)
+
+Si `TELEGRAM_BOT_TOKEN` est défini dans `.env`, Hermes est aussi accessible via Telegram. Le bot répond automatiquement aux messages envoyés au bot.
+
+### Flux d'inférence
+
+Le conteneur Hermes délègue automatiquement les requêtes d'inférence à vLLM via `http://vllm:8000/v1`. Tu n'as rien à configurer de plus — Hermes utilise l'API OpenAI compatible de vLLM par défaut.
+
 ## Dépannage
 
 ### Problèmes VRAM
