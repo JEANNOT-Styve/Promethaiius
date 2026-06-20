@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y curl && \
     rm -rf /var/lib/apt/lists/*
 
 # Install coding agents globally via npm
-RUN npm install -g @anthropic-ai/claude-code @openai/codex-cli opencode
+RUN npm install -g @anthropic-ai/claude-code @openai/codex opencode-ai
 
 # Create workspace directory
 RUN mkdir -p /workspace
@@ -25,5 +25,5 @@ WORKDIR /workspace
 # Expose Hermes port (if needed)
 EXPOSE 8080
 
-# Start Hermes
-CMD ["hermes", "agent"]
+# Start Hermes (gateway is the long-running daemon in v0.17+)
+CMD ["hermes", "gateway", "run"]
