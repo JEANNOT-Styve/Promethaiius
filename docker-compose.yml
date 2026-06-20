@@ -1,7 +1,9 @@
 services:
   # Service vLLM : Moteur d'inférence GPU NVIDIA
   vllm:
-    image: vllm/vllm-openai:gemma-x86_64-cu130
+    build:
+      context: .
+      dockerfile: Dockerfile.vllm
     container_name: promethaiius-vllm
     restart: unless-stopped
     ports:
@@ -12,6 +14,7 @@ services:
     environment:
       - HF_TOKEN=${HF_TOKEN}
       - VLLM_USE_V2_MODEL_RUNNER=1
+      - VLLM_WSL2_ENABLE_PIN_MEMORY=1
     entrypoint: ["vllm"]
     command: >
       serve nvidia/diffusiongemma-26B-A4B-it-NVFP4
@@ -20,7 +23,7 @@ services:
       --trust-remote-code
       --dtype auto
       --max-model-len 65000
-      --gpu-memory-utilization 0.70
+      --gpu-memory-utilization 0.9
       --max-num-batched-tokens 8192
       --max-num-seqs 4
       --diffusion-config '{"canvas_length": 256, "max_denoising_steps": 48}'
@@ -41,10 +44,10 @@ services:
     runtime: nvidia
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/v1/models"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 120s
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 300s
 
   # Service Hermes : "God Container" (Agent + CLIs)
   hermes:
