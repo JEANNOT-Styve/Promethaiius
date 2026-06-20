@@ -15,7 +15,9 @@ services:
       - HF_TOKEN=${HF_TOKEN}
       - VLLM_USE_V2_MODEL_RUNNER=1
       - VLLM_WSL2_ENABLE_PIN_MEMORY=1
-    entrypoint: ["vllm"]
+      - HF_HOME=/models
+      - TRANSFORMERS_CACHE=/models
+    entrypoint:
     command: >
       serve nvidia/diffusiongemma-26B-A4B-it-NVFP4
       --host 0.0.0.0
