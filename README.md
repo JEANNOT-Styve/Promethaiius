@@ -67,13 +67,15 @@ huggingface-cli download <repo/model> --local-dir <MODELS_DIR>/<model-name>
 ### 3. Démarrer l'infrastructure
 
 ```bash
-# Option A : Script automatisé
+# Script automatisé avec vérifications (recommandé)
 ./start-promethaiius.sh
 
-# Option B : Manuellement
+# Ou démarrage manuel
 docker compose pull
 docker compose up -d
 ```
+
+**Premier démarrage :** Attendez 2-3 minutes pour le chargement du modèle DiffusionGemma.
 
 ## Vérification
 
@@ -104,12 +106,26 @@ docker compose restart
 # Arrêter
 docker compose down
 
-# Reconstruire l'image Hermes
+# Reconstruire l'image Hermes uniquement
 docker compose up -d --build hermes
 
 # Monitorer le GPU
 nvidia-smi
+
+# Vérifier la santé de vLLM
+curl http://localhost:8000/v1/models
+
+# Voir les logs en temps réel
+docker logs -f promethaiius-vllm
 ```
+
+### ⚠️ IMPORTANT : Limites de contexte
+
+**Ne jamais dépasser 65000 tokens !**
+
+- Votre modèle LM Studio backend limite la fenêtre à 65000 tokens
+- Dépasser cette limite provoquera des erreurs OOM (Out Of Memory)
+- Pour les prompts très longs, utilisez le chunking ou résumez d'abord
 
 ## Structure du projet
 
@@ -141,6 +157,55 @@ Promethaiius/
 
 ## Notes
 
-- Image vLLM : `gemma-x86_64-cu130` (CUDA 130 pour GPU Blackwell)
+### Configuration DiffusionGemma (RTX 5090 31.5GB VRAM)
+
+**Fenêtre contextuelle limitée à 65000 tokens maximum** - respectez cette limite !
+
+#### Paramètres optimisés pour 31.5GB VRAM :
+- `--max-model-len 65000` : Fenêtre contextuelle maximale (ne pas dépasser !)
+- `--gpu-memory-utilization 0.65` : 65% de la VRAM (laisser 10GB pour le système)
+- `--attention-backend FLASH_ATTENTION` : Plus économe en mémoire que TRITON_ATTN
+- `--max-num-seqs 2` : Limité pour éviter les problèmes de fragmentation
+- `--diffusion-config` : Configuration réduite (canvas_length: 128, max_denoising_steps: 32)
+
+#### ⚠️ Recommandations critiques de la communauté IA :
+
+**1. Ne jamais dépasser 65000 tokens**
+   - La fenêtre contextuelle est limitée par votre modèle LM Studio en backend
+   - Dépasser cette limite provoquera des erreurs OOM (Out Of Memory)
+
+**2. Gestion VRAM sur RTX 5090 (31.5GB)**
+   - Laissez toujours ~10-12GB de marge pour le système et les caches
+   - Fermez LM Studio avant de démarrer vLLM si possible
+   - Utilisez `--gpu-memory-utilization 0.65` maximum
+
+**3. Optimisations mémoire**
+   - FLASH_ATTENTION est plus économe que TRITON_ATTN sur GPU Blackwell
+   - Réduisez `canvas_length` et `max_denoising_steps` pour les tâches légères
+   - Évitez les prompts très longs (> 40k tokens) sauf nécessité
+
+**4. Workflow recommandé**
+   ```bash
+   # Vérifier VRAM disponible
+   nvidia-smi
+   
+   # Arrêter LM Studio si en cours d'utilisation
+   docker compose stop promethaiius-vllm
+   
+   # Démarrer vLLM avec la configuration optimisée
+   docker compose up -d
+   
+   # Attendre le healthcheck (2-3 min pour le premier démarrage)
+   docker logs -f promethaiius-vllm | grep "Ready for requests"
+   ```
+
+**5. Dépannage VRAM**
+   - Erreur OOM : réduire `--gpu-memory-utilization` à 0.60
+   - Lenteur excessive : vérifier que le modèle est bien chargé en VRAM (pas en RAM)
+   - Erreurs CUDA : mettre à jour les drivers NVIDIA >= 550
+
+### Infrastructure actuelle
+
+- Image vLLM : `gemma-x86_64-cu130` (CUDA 13.0 pour GPU Blackwell)
 - Hermes conteneurisé pour délégation native sans installation hôte
 - Isolation : QDrant/SonarQube exclus de l'infrastructure Promethaiius
