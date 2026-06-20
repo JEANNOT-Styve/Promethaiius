@@ -63,12 +63,17 @@ services:
       - ./hermes_data:/root/.hermes
       - ./workspace:/workspace
       - ${MODELS_DIR}:/models:ro
+    ports:
+      - "9119:9119"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_BASE_URL=${OPENAI_BASE_URL}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - WORKSPACE_DIR=${WORKSPACE_DIR}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - GATEWAY_ALLOW_ALL_USERS=true
+      - HERMES_DASHBOARD=1
+      - HERMES_DASHBOARD_INSECURE=1
     # Hermes n'a pas besoin d'accès direct au GPU, il delegate au conteneur vllm
 
 volumes:
